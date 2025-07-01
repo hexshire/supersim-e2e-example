@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Identifier } from "interfaces/L2/ICrossL2Inbox.sol";
-import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import {Identifier} from "optimism/interfaces/L2/ICrossL2Inbox.sol";
+import {IL2ToL2CrossDomainMessenger} from "optimism/interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 
 interface IGasTank {
     // Structs
@@ -54,10 +54,7 @@ interface IGasTank {
     function initiateWithdrawal(uint256 _amount) external;
     function finalizeWithdrawal(address _to) external;
     function authorizeClaim(bytes32 _messageHash) external;
-    function relayMessage(
-        Identifier calldata _id,
-        bytes calldata _sentMessage
-    )
+    function relayMessage(Identifier calldata _id, bytes calldata _sentMessage)
         external
         returns (uint256 relayCost_, bytes32[] memory nestedMessageHashes_);
     function claim(Identifier calldata _id, address _gasProvider, bytes calldata _payload) external;
@@ -65,11 +62,7 @@ interface IGasTank {
         external
         pure
         returns (bytes32 messageHash_, address relayer_, uint256 relayCost_, bytes32[] memory nestedMessageHashes_);
-    function claimOverhead(
-        uint256 _numHashes,
-        uint256 _baseFee,
-        bytes calldata _data
-    )
+    function claimOverhead(uint256 _numHashes, uint256 _baseFee, bytes calldata _data)
         external
         view
         returns (uint256);

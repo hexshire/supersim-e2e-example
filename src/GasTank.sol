@@ -2,16 +2,16 @@
 pragma solidity 0.8.25;
 
 // Interfaces
-import {ICrossL2Inbox} from "interfaces/L2/ICrossL2Inbox.sol";
-import {IGasTank} from "interfaces/IGasTank.sol";
-import {IL2ToL2CrossDomainMessenger, Identifier} from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
-import {IGasPriceOracle} from "interfaces/L2/IGasPriceOracle.sol";
+import {ICrossL2Inbox} from "optimism/interfaces/L2/ICrossL2Inbox.sol";
+import {IGasTank, Identifier} from "interfaces/IGasTank.sol";
+import {IL2ToL2CrossDomainMessenger} from "optimism/interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import {IGasPriceOracle} from "optimism/interfaces/L2/IGasPriceOracle.sol";
 
 // Libraries
-import {Encoding} from "src/libraries/Encoding.sol";
-import {Hashing} from "src/libraries/Hashing.sol";
-import {Predeploys} from "src/libraries/Predeploys.sol";
-import {SafeSend} from "src/universal/SafeSend.sol";
+import {Encoding} from "optimism/src/libraries/Encoding.sol";
+import {Hashing} from "optimism/src/libraries/Hashing.sol";
+import {Predeploys} from "optimism/src/libraries/Predeploys.sol";
+import {SafeSend} from "optimism/src/universal/SafeSend.sol";
 
 /// @title GasTank
 /// @notice Allows users to deposit native tokens to compensate relayers for executing cross chain transactions

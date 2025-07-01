@@ -4,10 +4,11 @@ out = "out"
 libs = ["lib"]
 remappings = [
     "forge-std/=lib/forge-std/src/",
-    "interfaces/L2/=lib/optimism/packages/contracts-bedrock/interfaces/L2/",
-    "interfaces/IGasTank.sol=interfaces/IGasTank.sol",
-    "src/libraries/=lib/optimism/packages/contracts-bedrock/src/libraries/",
-    "src/universal/=lib/optimism/packages/contracts-bedrock/src/universal/"
+    "optimism/interfaces/=lib/optimism/packages/contracts-bedrock/interfaces/",
+    "optimism/src/libraries/=lib/optimism/packages/contracts-bedrock/src/libraries/",
+    "optimism/src/universal/=lib/optimism/packages/contracts-bedrock/src/universal/"
+]
+fs_permissions = [
+  { access='read-write', path='./' },
 ]
 
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

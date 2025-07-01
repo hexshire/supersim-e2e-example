@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { Script } from "forge-std/Script.sol";
-import { GasTank } from "../../src/GasTank.sol";
-import { MessageSender } from "../../src/MessageSender.sol";
+import {Script} from "forge-std/Script.sol";
+import {GasTank} from "src/GasTank.sol";
+import {MessageSender} from "src/MessageSender.sol";
 import "forge-std/console.sol";
 
 // To deploy every contract on both chains, run from packages/contracts-bedrock:
-// forge script test/supersim/SetupSupersim.s.sol:SetupSupersim --broadcast
+// forge script SetupSupersim.s.sol:SetupSupersim --broadcast
 
 contract SetupSupersim is Script {
     uint256 constant ORIGIN_CHAIN_ID = 901;
@@ -23,7 +23,7 @@ contract SetupSupersim is Script {
         vm.createSelectFork(ORIGIN_CHAIN_RPC_URL);
         vm.startBroadcast(deployerPrivateKey);
 
-        GasTank gasTank901 = new GasTank{ salt: staticSalt }();
+        GasTank gasTank901 = new GasTank{salt: staticSalt}();
 
         vm.stopBroadcast();
         console.log("GasTank deployed on chain %d at address %s", ORIGIN_CHAIN_ID, address(gasTank901));
@@ -32,7 +32,7 @@ contract SetupSupersim is Script {
         vm.createSelectFork(DESTINATION_CHAIN_RPC_URL);
         vm.startBroadcast(deployerPrivateKey);
 
-        GasTank gasTank902 = new GasTank{ salt: staticSalt }();
+        GasTank gasTank902 = new GasTank{salt: staticSalt}();
         MessageSender messageSender902 = new MessageSender();
 
         vm.stopBroadcast();
@@ -44,7 +44,7 @@ contract SetupSupersim is Script {
 
         // To ensure we're overwriting, we remove the old file first.
         // A try/catch is used to avoid an error if the file doesn't exist.
-        try vm.removeFile(path) { } catch { }
+        try vm.removeFile(path) {} catch {}
 
         string memory json = string(
             abi.encodePacked(

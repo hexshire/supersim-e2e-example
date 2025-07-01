@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { IL2ToL2CrossDomainMessenger } from "interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
-import { Predeploys } from "src/libraries/Predeploys.sol";
+import {IL2ToL2CrossDomainMessenger} from "optimism/interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import {Predeploys} from "optimism/src/libraries/Predeploys.sol";
 
 contract MessageSender {
     // The cross domain messenger

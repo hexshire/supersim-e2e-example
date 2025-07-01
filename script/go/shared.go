@@ -87,19 +87,15 @@ var (
 // sendAndWaitForTransaction is a helper to build, sign, send, and wait for a transaction
 func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *ecdsa.PrivateKey, to *common.Address, value *big.Int, data []byte, accessList ...types.AccessList) (*types.Receipt, error) {
 	fromAddress := crypto.PubkeyToAddress(*pk.Public().(*ecdsa.PublicKey))
-	fmt.Printf("DEBUG: Getting nonce for address %s on chain %s...\n", fromAddress.Hex(), chainID.String())
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nonce: %w", err)
 	}
-	fmt.Printf("DEBUG: Got nonce: %d\n", nonce)
 
-	fmt.Printf("DEBUG: Getting latest block...\n")
 	latestBlock, err := client.BlockByNumber(context.Background(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest block: %w", err)
 	}
-	fmt.Printf("DEBUG: Got latest block: %d, baseFee: %s\n", latestBlock.Number(), latestBlock.BaseFee().String())
 	gasFeeCap := new(big.Int).Mul(latestBlock.BaseFee(), big.NewInt(2))
 
 	// For this test, we want to align with the contract's cost calculation, which only uses basefee.
@@ -121,20 +117,16 @@ func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *e
 	}
 
 	tx := types.NewTx(txData)
-	fmt.Printf("DEBUG: Signing transaction...\n")
 	signedTx, err := types.SignTx(tx, types.NewLondonSigner(chainID), pk)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign transaction: %w", err)
 	}
 
-	fmt.Printf("DEBUG: Sending transaction %s to %s...\n", signedTx.Hash().Hex(), to.Hex())
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send transaction: %w", err)
 	}
-	fmt.Printf("DEBUG: Transaction sent successfully\n")
 
-	fmt.Printf("DEBUG: Waiting for transaction %s to be mined (30s timeout)...\n", signedTx.Hash().Hex())
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	receipt, err := bind.WaitMined(ctx, client, signedTx)
@@ -142,16 +134,13 @@ func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *e
 		// If WaitMined returns a receipt, it means the transaction was mined but reverted.
 		// We can use the receipt to get more information.
 		if receipt != nil {
-			fmt.Printf("DEBUG: Transaction was mined but reverted\n")
 			// Proceed to the status check below.
 		} else {
-			fmt.Printf("DEBUG: Transaction failed to be mined within timeout\n")
 			return nil, fmt.Errorf("failed to wait for transaction to be mined: %w", err)
 		}
 	}
 
 	if receipt.Status == 0 {
-		fmt.Printf("DEBUG: Transaction failed (status 0), trying to get revert reason...\n")
 		// Transaction failed, try to get the revert reason by re-executing the transaction as a call.
 		fromAddress := crypto.PubkeyToAddress(*pk.Public().(*ecdsa.PublicKey))
 		callMsg := ethereum.CallMsg{
@@ -172,7 +161,6 @@ func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *e
 		return nil, fmt.Errorf("transaction failed with status 0 (revert reason not found)")
 	}
 
-	fmt.Printf("DEBUG: Transaction %s mined successfully in block %d\n", receipt.TxHash.Hex(), receipt.BlockNumber.Uint64())
 	return receipt, nil
 }
 

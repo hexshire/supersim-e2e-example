@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -20,13 +19,11 @@ func tokenRelay() {
 	fmt.Println("Starting end-to-end manual relay script...")
 
 	// === Setup Clients and Signer ===
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client901, err := ethclient.DialContext(ctx, "http://127.0.0.1:9545")
+	client901, err := ethclient.Dial("http://127.0.0.1:9545")
 	if err != nil {
 		log.Fatalf("Failed to connect to the source chain (901): %v", err)
 	}
-	client902, err := ethclient.DialContext(ctx, "http://127.0.0.1:9546")
+	client902, err := ethclient.Dial("http://127.0.0.1:9546")
 	if err != nil {
 		log.Fatalf("Failed to connect to the destination chain (902): %v", err)
 	}

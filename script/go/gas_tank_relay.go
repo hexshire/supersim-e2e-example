@@ -51,7 +51,9 @@ func runGasAnalysis() {
 	results := make(map[int]*GasDeltaResult)
 	var keys []int
 
-	for i := 0; i <= 60; i += 1 {
+	testCases := []int{0, 1, 2, 5, 10, 15, 30, 35}
+	
+	for _, i := range testCases {
 		logfIf(true, "\n--- Running for %d nested messages ---\n", i)
 		relayGasDelta, claimGasDelta, err := gasTankRelay(int64(i), false)
 		if err != nil {
@@ -65,10 +67,20 @@ func runGasAnalysis() {
 		keys = append(keys, i)
 	}
 
-	// Get the path of the currently running file and go up two directories to reach project root
+	// Get the path of the currently running file
 	_, b, _, _ := runtime.Caller(0)
-	basepath := filepath.Dir(filepath.Dir(filepath.Dir(b)))
-	filePath := filepath.Join(basepath, "gas_analysis.json")
+	basepath := filepath.Dir(b)
+	
+	// Create results directory if it doesn't exist
+	resultsDir := filepath.Join(basepath, "results")
+	if err := os.MkdirAll(resultsDir, 0755); err != nil {
+		log.Fatalf("Failed to create results directory: %v", err)
+	}
+	
+	// Generate timestamped filename
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	filename := fmt.Sprintf("gas_analysis_%s.json", timestamp)
+	filePath := filepath.Join(resultsDir, filename)
 
 	// Create ordered JSON manually to ensure numeric ordering
 	var jsonBuilder strings.Builder
@@ -101,13 +113,11 @@ func gasTankRelay(numNestedMessages int64, verbose bool) (*big.Int, *big.Int, er
 	logIf(verbose, "Starting GasTank end-to-end manual relay script...")
 
 	// === Setup Clients and Signer ===
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client901, err := ethclient.DialContext(ctx, "http://127.0.0.1:9545")
+	client901, err := ethclient.Dial("http://127.0.0.1:9545")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to connect to the source chain (901): %w", err)
 	}
-	client902, err := ethclient.DialContext(ctx, "http://127.0.0.1:9546")
+	client902, err := ethclient.Dial("http://127.0.0.1:9546")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to connect to the destination chain (902): %w", err)
 	}
@@ -128,9 +138,9 @@ func gasTankRelay(numNestedMessages int64, verbose bool) (*big.Int, *big.Int, er
 	logfIf(verbose, "Using Relayer address (Account 1):      %s\n", relayerAddress.Hex())
 
 	// === Read Deployed Contract Addresses ===
-	// Get the path of the currently running file and go up two directories to reach project root
+	// Get the path of the currently running file
 	_, b, _, _ := runtime.Caller(0)
-	basepath := filepath.Dir(filepath.Dir(filepath.Dir(b)))
+	basepath := filepath.Dir(b)
 	contractsFilePath := filepath.Join(basepath, "supersim-contracts.json")
 
 	contractsFile, err := os.ReadFile(contractsFilePath)
@@ -194,7 +204,7 @@ func gasTankRelay(numNestedMessages int64, verbose bool) (*big.Int, *big.Int, er
 
 	// === Step 2: Authorize Claim on Gas Tank ===
 	logIf(verbose, "\n=== Step 2: Authorizing claim on GasTank (as Gas Provider) ===")
-	authCalldata, err := gasTankABI.Pack("authorizeClaim", messageHash)
+	authCalldata, err := gasTankABI.Pack("authorizeClaim", [][32]byte{messageHash})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to pack authorizeClaim ABI: %w", err)
 	}
@@ -207,18 +217,6 @@ func gasTankRelay(numNestedMessages int64, verbose bool) (*big.Int, *big.Int, er
 	// === Step 3: Deposit to Gas Tank on Chain 901 (if needed) ===
 	logIf(verbose, "\n=== Step 3: Checking balance and depositing to GasTank on Chain 901 (as Gas Provider) ===")
 
-	// Get MAX_DEPOSIT from the contract
-	maxDepositCalldata, err := gasTankABI.Pack("MAX_DEPOSIT")
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to pack MAX_DEPOSIT ABI: %w", err)
-	}
-	maxDepositBytes, err := client901.CallContract(context.Background(), ethereum.CallMsg{To: &gasTank901Address, Data: maxDepositCalldata}, nil)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to call MAX_DEPOSIT: %w", err)
-	}
-	maxDeposit := new(big.Int).SetBytes(maxDepositBytes)
-	logfIf(verbose, "MAX_DEPOSIT is: %s\n", maxDeposit.String())
-
 	// Get current balance
 	currentBalance, err := getCurrentGasProviderBalance(client901, gasProviderAddress, gasTank901Address)
 	if err != nil {
@@ -226,9 +224,11 @@ func gasTankRelay(numNestedMessages int64, verbose bool) (*big.Int, *big.Int, er
 	}
 	logfIf(verbose, "Current balance is: %s\n", currentBalance.String())
 
-	if currentBalance.Cmp(maxDeposit) < 0 {
-		amountToDeposit := new(big.Int).Sub(maxDeposit, currentBalance)
-		logfIf(verbose, "Depositing %s to reach max balance...\n", amountToDeposit.String())
+	// Deposit a reasonable amount if balance is low (e.g., less than 1 ETH)
+	minBalance := new(big.Int).Mul(big.NewInt(1), big.NewInt(1e18)) // 1 ETH
+	if currentBalance.Cmp(minBalance) < 0 {
+		amountToDeposit := new(big.Int).Sub(minBalance, currentBalance)
+		logfIf(verbose, "Depositing %s to reach minimum balance...\n", amountToDeposit.String())
 
 		depositCalldata, err := gasTankABI.Pack("deposit", gasProviderAddress)
 		if err != nil {
@@ -240,7 +240,7 @@ func gasTankRelay(numNestedMessages int64, verbose bool) (*big.Int, *big.Int, er
 		}
 		logfIf(verbose, "Deposit transaction successful: %s\n", depositTx.TxHash.Hex())
 	} else {
-		logIf(verbose, "Balance is full, no deposit needed.")
+		logIf(verbose, "Balance is sufficient, no deposit needed.")
 	}
 
 	// === Step 4: Prepare data for relaying on Chain 902 ===
@@ -523,7 +523,10 @@ func gasTankRelay(numNestedMessages int64, verbose bool) (*big.Int, *big.Int, er
 		}
 
 		// Compare Gas Provider Balance before and after the claim
-		logfIf(verbose, "Gas Provider Expected Balance: %s\n", (new(big.Int).Sub(maxDeposit, new(big.Int).Add(eventClaimCost, eventRelayCost))).String())
+		logIf(verbose, "\n[Gas Provider Balance]")
+
+		// Calculate expected balance based on costs
+		logfIf(verbose, "Gas Provider Cost Deduction: %s\n", new(big.Int).Add(eventClaimCost, eventRelayCost).String())
 		gasProviderBalance, err := getCurrentGasProviderBalance(client901, gasProviderAddress, gasTank901Address)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to get current balance: %w", err)

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -59,17 +58,16 @@ var (
 	crossDomainMessengerABI, _ = abi.JSON(strings.NewReader(`[{"type":"function","name":"crossDomainMessageContext","inputs":[],"outputs":[{"name":"sender_","type":"address","internalType":"address"},{"name":"source_","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"crossDomainMessageSender","inputs":[],"outputs":[{"name":"sender_","type":"address","internalType":"address"}],"stateMutability":"view"},{"type":"function","name":"crossDomainMessageSource","inputs":[],"outputs":[{"name":"source_","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"messageNonce","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"messageVersion","inputs":[],"outputs":[{"name":"","type":"uint16","internalType":"uint16"}],"stateMutability":"view"},{"type":"function","name":"relayMessage","inputs":[{"name":"_id","type":"tuple","internalType":"struct Identifier","components":[{"name":"origin","type":"address","internalType":"address"},{"name":"blockNumber","type":"uint256","internalType":"uint256"},{"name":"logIndex","type":"uint256","internalType":"uint256"},{"name":"timestamp","type":"uint256","internalType":"uint256"},{"name":"chainId","type":"uint256","internalType":"uint256"}]},{"name":"_sentMessage","type":"bytes","internalType":"bytes"}],"outputs":[{"name":"returnData_","type":"bytes","internalType":"bytes"}],"stateMutability":"payable"},{"type":"function","name":"resendMessage","inputs":[{"name":"_destination","type":"uint256","internalType":"uint256"},{"name":"_nonce","type":"uint256","internalType":"uint256"},{"name":"_sender","type":"address","internalType":"address"},{"name":"_target","type":"address","internalType":"address"},{"name":"_message","type":"bytes","internalType":"bytes"}],"outputs":[{"name":"messageHash_","type":"bytes32","internalType":"bytes32"}],"stateMutability":"nonpayable"},{"type":"function","name":"sendMessage","inputs":[{"name":"_destination","type":"uint256","internalType":"uint256"},{"name":"_target","type":"address","internalType":"address"},{"name":"_message","type":"bytes","internalType":"bytes"}],"outputs":[{"name":"messageHash_","type":"bytes32","internalType":"bytes32"}],"stateMutability":"nonpayable"},{"type":"function","name":"sentMessages","inputs":[{"name":"","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bytes32","internalType":"bytes32"}],"stateMutability":"view"},{"type":"function","name":"successfulMessages","inputs":[{"name":"","type":"bytes32","internalType":"bytes32"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"type":"function","name":"version","inputs":[],"outputs":[{"name":"","type":"string","internalType":"string"}],"stateMutability":"view"},{"type":"event","name":"RelayedMessage","inputs":[{"name":"source","type":"uint256","indexed":true,"internalType":"uint256"},{"name":"messageNonce","type":"uint256","indexed":true,"internalType":"uint256"},{"name":"messageHash","type":"bytes32","indexed":true,"internalType":"bytes32"},{"name":"returnDataHash","type":"bytes32","indexed":false,"internalType":"bytes32"}],"anonymous":false},{"type":"event","name":"SentMessage","inputs":[{"name":"destination","type":"uint256","indexed":true,"internalType":"uint256"},{"name":"target","type":"address","indexed":true,"internalType":"address"},{"name":"messageNonce","type":"uint256","indexed":true,"internalType":"uint256"},{"name":"sender","type":"address","indexed":false,"internalType":"address"},{"name":"message","type":"bytes","indexed":false,"internalType":"bytes"}],"anonymous":false},{"type":"error","name":"EventPayloadNotSentMessage","inputs":[]},{"type":"error","name":"IdOriginNotL2ToL2CrossDomainMessenger","inputs":[]},{"type":"error","name":"InvalidMessage","inputs":[]},{"type":"error","name":"MessageAlreadyRelayed","inputs":[]},{"type":"error","name":"MessageDestinationNotRelayChain","inputs":[]},{"type":"error","name":"MessageDestinationSameChain","inputs":[]},{"type":"error","name":"MessageTargetL2ToL2CrossDomainMessenger","inputs":[]},{"type":"error","name":"NotEntered","inputs":[]},{"type":"error","name":"ReentrantCall","inputs":[]}]`))
 	gasTankABI, _              = abi.JSON(strings.NewReader(`[
 		{"inputs":[{"internalType":"address","name":"_to","type":"address"}],"name":"deposit","outputs":[],"stateMutability":"payable","type":"function"},
-		{"inputs":[{"internalType":"bytes32","name":"_messageHash","type":"bytes32"}],"name":"authorizeClaim","outputs":[],"stateMutability":"nonpayable","type":"function"},
-		{"inputs":[],"name":"MAX_DEPOSIT","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+		{"inputs":[{"internalType":"bytes32[]","name":"_messageHashes","type":"bytes32[]"}],"name":"authorizeClaim","outputs":[],"stateMutability":"nonpayable","type":"function"},
 		{"inputs":[{"internalType":"address","name":"gasProvider","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"balance","type":"uint256"}],"stateMutability":"view","type":"function"},
 		{"inputs":[{"components":[{"internalType":"address","name":"origin","type":"address"},{"internalType":"uint256","name":"blockNumber","type":"uint256"},{"internalType":"uint256","name":"logIndex","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"chainId","type":"uint256"}],"name":"_id","type":"tuple"},{"internalType":"address","name":"_gasProvider","type":"address"},{"internalType":"bytes","name":"_payload","type":"bytes"}],"name":"claim","outputs":[],"stateMutability":"nonpayable","type":"function"},
-		{"inputs":[{"internalType":"uint256","name":"_numHashes","type":"uint256"}],"name":"claimOverhead","outputs":[{"internalType":"uint256","name":"overhead_","type":"uint256"}],"stateMutability":"view","type":"function"},
-		{"type":"function","name":"relayMessage","inputs":[{"name":"_id","type":"tuple","components":[{"name":"origin","type":"address"},{"name":"blockNumber","type":"uint256"},{"name":"logIndex","type":"uint256"},{"name":"timestamp","type":"uint256"},{"name":"chainId","type":"uint256"}]},{"name":"_sentMessage","type":"bytes"}],"outputs":[],"stateMutability":"nonpayable"},
-		{"type":"event","name":"RelayedMessageGasReceipt","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"relayCost","type":"uint256"},{"indexed":false,"name":"destinationMessageHashes","type":"bytes32[]"}],"anonymous":false}
+		{"inputs":[{"internalType":"uint256","name":"_numHashes","type":"uint256"},{"internalType":"uint256","name":"_baseFee","type":"uint256"},{"internalType":"bytes","name":"_data","type":"bytes"}],"name":"claimOverhead","outputs":[{"internalType":"uint256","name":"l2Cost_","type":"uint256"},{"internalType":"uint256","name":"l1Cost_","type":"uint256"}],"stateMutability":"view","type":"function"},
+		{"type":"function","name":"relayMessage","inputs":[{"name":"_id","type":"tuple","components":[{"name":"origin","type":"address"},{"name":"blockNumber","type":"uint256"},{"name":"logIndex","type":"uint256"},{"name":"timestamp","type":"uint256"},{"name":"chainId","type":"uint256"}]},{"name":"_sentMessage","type":"bytes"}],"outputs":[{"name":"relayCost_","type":"uint256"},{"name":"nestedMessageHashes_","type":"bytes32[]"}],"stateMutability":"nonpayable"},
+		{"type":"event","name":"RelayedMessageGasReceipt","inputs":[{"indexed":true,"name":"messageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":false,"name":"relayCost","type":"uint256"},{"indexed":false,"name":"nestedMessageHashes","type":"bytes32[]"}],"anonymous":false}
 	]`))
 	messageSenderABI, _                 = abi.JSON(strings.NewReader(`[{"type":"function","name":"sendMessages","inputs":[{"name":"_destinationChainId","type":"uint256"},{"name":"_numMessages","type":"uint256"}]}]`))
 	sentMessageEventABI, _              = abi.JSON(strings.NewReader(`[{"type":"event","name":"SentMessage","inputs":[{"indexed":true,"name":"destination","type":"uint256"},{"indexed":true,"name":"target","type":"address"},{"indexed":true,"name":"messageNonce","type":"uint256"},{"indexed":false,"name":"sender","type":"address"},{"indexed":false,"name":"message","type":"bytes"}],"anonymous":false}]`))
-	relayedMessageGasReceiptEventABI, _ = abi.JSON(strings.NewReader(`[{"type":"event","name":"RelayedMessageGasReceipt","inputs":[{"indexed":true,"name":"messageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":false,"name":"gasCost","type":"uint256"},{"indexed":false,"name":"nestedMessageHashes","type":"bytes32[]"}],"anonymous":false}]`))
+	relayedMessageGasReceiptEventABI, _ = abi.JSON(strings.NewReader(`[{"type":"event","name":"RelayedMessageGasReceipt","inputs":[{"indexed":true,"name":"messageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":false,"name":"relayCost","type":"uint256"},{"indexed":false,"name":"nestedMessageHashes","type":"bytes32[]"}],"anonymous":false}]`))
 	claimedEventABI, _                  = abi.JSON(strings.NewReader(`[{"type":"event","name":"Claimed","inputs":[{"indexed":true,"name":"originMessageHash","type":"bytes32"},{"indexed":true,"name":"relayer","type":"address"},{"indexed":true,"name":"gasProvider","type":"address"},{"indexed":false,"name":"claimer","type":"address"},{"indexed":false,"name":"relayCost","type":"uint256"},{"indexed":false,"name":"claimCost","type":"uint256"}],"anonymous":false}]`))
 
 	// Events Signatures
@@ -110,7 +108,7 @@ func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *e
 		To:        to,
 		Value:     value,
 		Data:      data,
-		Gas:       500000,
+		Gas:       2000000,
 	}
 	if len(accessList) > 0 {
 		txData.AccessList = accessList[0]
@@ -127,9 +125,7 @@ func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *e
 		return nil, fmt.Errorf("failed to send transaction: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	receipt, err := bind.WaitMined(ctx, client, signedTx)
+	receipt, err := bind.WaitMined(context.Background(), client, signedTx)
 	if err != nil {
 		// If WaitMined returns a receipt, it means the transaction was mined but reverted.
 		// We can use the receipt to get more information.
@@ -167,9 +163,7 @@ func sendAndWaitForTransaction(client *ethclient.Client, chainID *big.Int, pk *e
 func getAccessList(id Identifier, payload []byte) (*types.AccessList, error) {
 	// As pointed out, we should use an admin RPC client, similar to relay.go
 	// The relay.go script connects to port 8420 for the supersim admin rpc.
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	rpcClient, err := rpc.DialContext(ctx, "http://localhost:8420")
+	rpcClient, err := rpc.Dial("http://localhost:8420")
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to supersim admin RPC: %w", err)
 	}
@@ -181,9 +175,7 @@ func getAccessList(id Identifier, payload []byte) (*types.AccessList, error) {
 	}
 
 	var result GetAccessListResponse
-	ctx2, cancel2 := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel2()
-	err = rpcClient.CallContext(ctx2, &result, "admin_getAccessListForIdentifier", req)
+	err = rpcClient.CallContext(context.Background(), &result, "admin_getAccessListForIdentifier", req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get access list via admin_getAccessListForIdentifier: %w", err)
 	}
